@@ -1,0 +1,4 @@
+{
+    "cortex-debug.liveWatchRefreshRate": 250,
+    "cortex-debug.variableUseNaturalFormat": true
+}
