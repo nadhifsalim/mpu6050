@@ -16,6 +16,8 @@
 #include <stdint.h>
 #include "stm32f1xx.h"
 
+#define RAD_TO_DEG 57.295779513082320876798154814105
+
 typedef struct {
     double Q_angle;
     double Q_bias;
