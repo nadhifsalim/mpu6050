@@ -22,6 +22,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "mpu6050.h"
+#include "attitude.h"
+#include "complementary.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

@@ -34,13 +34,29 @@ extern "C" {
 /* Nilai identitas sensor WHO_AM_I */
 #define MPU6050_WHO_AM_I_VAL        0x68
 
-/* Konfigurasi Range Default (Accel: ±2g, Gyro: ±250 deg/s) */
-#define MPU6050_ACCEL_FS_2G         0x00
-#define MPU6050_GYRO_FS_250         0x00
+/* Konfigurasi Accelerometer Full-Scale Range (Register ACCEL_CONFIG 0x1C, bits [4:3]) */
+#define MPU6050_ACCEL_FS_2G         0x00    /* ±2g   (AFS_SEL = 0) */
+#define MPU6050_ACCEL_FS_4G         0x08    /* ±4g   (AFS_SEL = 1) */
+#define MPU6050_ACCEL_FS_8G         0x10    /* ±8g   (AFS_SEL = 2) */
+#define MPU6050_ACCEL_FS_16G        0x18    /* ±16g  (AFS_SEL = 3) */
 
-/* Faktor Sensitivitas (LSB) */
+/* Konfigurasi Gyroscope Full-Scale Range (Register GYRO_CONFIG 0x1B, bits [4:3]) */
+#define MPU6050_GYRO_FS_250         0x00    /* ±250 °/s  (FS_SEL = 0) */
+#define MPU6050_GYRO_FS_500         0x08    /* ±500 °/s  (FS_SEL = 1) */
+#define MPU6050_GYRO_FS_1000        0x10    /* ±1000 °/s (FS_SEL = 2) */
+#define MPU6050_GYRO_FS_2000        0x18    /* ±2000 °/s (FS_SEL = 3) */
+
+/* Faktor Sensitivitas Accelerometer (LSB/g) */
 #define MPU6050_ACCEL_SENS_2G       16384.0f
+#define MPU6050_ACCEL_SENS_4G       8192.0f
+#define MPU6050_ACCEL_SENS_8G       4096.0f
+#define MPU6050_ACCEL_SENS_16G      2048.0f
+
+/* Faktor Sensitivitas Gyroscope (LSB/(°/s)) */
 #define MPU6050_GYRO_SENS_250       131.0f
+#define MPU6050_GYRO_SENS_500       65.5f
+#define MPU6050_GYRO_SENS_1000      32.8f
+#define MPU6050_GYRO_SENS_2000      16.4f
 
 /* Timeout komunikasi I2C (ms) */
 #define MPU6050_I2C_TIMEOUT         100
