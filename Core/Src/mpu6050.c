@@ -41,10 +41,11 @@ HAL_StatusTypeDef MPU6050_Init(MPU6050_t *mpu, I2C_HandleTypeDef *hi2c)
     mpu->gyro_offset_z  = 0.0f;
 
     mpu->angle_init     = 0;
+    mpu->kalman_init    = 0;
     mpu->roll           = 0.0f;
     mpu->pitch          = 0.0f;
-    mpu->KalmanAngleX   = 0.0;
-    mpu->KalmanAngleY   = 0.0;
+    mpu->roll_k         = 0.0;
+    mpu->pitch_k        = 0.0;
 
     /* 1. Periksa register WHO_AM_I (0x75) */
     uint8_t who_am_i = 0;

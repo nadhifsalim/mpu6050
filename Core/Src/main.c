@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "mpu6050.h"
+#include "kalman.h"
 #include "complementary.h"
 /* USER CODE END Includes */
 
@@ -122,15 +123,18 @@ int main(void)
     mpu_status = MPU6050_ReadAll(&mpu);
     if (mpu_status == HAL_OK)
     {
-      /* Hitung estimasi orientasi sudut roll dan pitch dengan complementary filter */
-      MPU6050_Update_Angle(&mpu);
+      /* Hitung estimasi orientasi sudut roll dan pitch dengan Kalman Filter */
+      MPU6050_Update_Kalman(&mpu);
 
       /*
-       * Data berhasil dibaca dan siap digunakan:
+       * Hasil akhir estimasi sudut menggunakan Kalman Filter:
+       * Roll  (°) : mpu.roll_k
+       * Pitch (°) : mpu.pitch_k
+       *
+       * Data pembacaan sensor:
        * Akselerometer (g)   : mpu.accel_x, mpu.accel_y, mpu.accel_z
        * Suhu (°C)           : mpu.temperature
        * Gyroscope (°/s)     : mpu.gyro_x, mpu.gyro_y, mpu.gyro_z
-       * Estimasi Sudut (°)  : mpu.roll, mpu.pitch
        */
     }
 
