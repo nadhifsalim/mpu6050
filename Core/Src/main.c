@@ -22,7 +22,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "mpu6050.h"
-#include "attitude.h"
 #include "complementary.h"
 /* USER CODE END Includes */
 
@@ -97,12 +96,22 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   /* Inisialisasi sensor MPU6050 */
-  MPU6050_Init(&mpu, &hi2c1);
-  while (MPU6050_Calibrate(&mpu, 20000) != HAL_OK)
+  while (MPU6050_Init(&mpu, &hi2c1) != HAL_OK)
   {
-    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, 1);
+    /* Sensor gagal diinisialisasi / belum terhubung: kedipkan LED cepat */
+    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    HAL_Delay(100);
   }
-  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, 0);
+
+  /* Kalibrasi sensor (1000 sampel statis ~2 detik) */
+  while (MPU6050_Calibrate(&mpu, 1000) != HAL_OK)
+  {
+    /* Kalibrasi gagal: kedipkan LED */
+    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    HAL_Delay(250);
+  }
+  /* Kalibrasi selesai: matikan LED indikator kalibrasi */
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -113,12 +122,24 @@ int main(void)
     mpu_status = MPU6050_ReadAll(&mpu);
     if (mpu_status == HAL_OK)
     {
+      /* Hitung estimasi orientasi sudut roll dan pitch dengan complementary filter */
+      MPU6050_Update_Angle(&mpu);
+
       /*
        * Data berhasil dibaca dan siap digunakan:
        * Akselerometer (g)   : mpu.accel_x, mpu.accel_y, mpu.accel_z
        * Suhu (°C)           : mpu.temperature
        * Gyroscope (°/s)     : mpu.gyro_x, mpu.gyro_y, mpu.gyro_z
+       * Estimasi Sudut (°)  : mpu.roll, mpu.pitch
        */
+    }
+
+    /* Heartbeat LED: berkedip setiap 500 ms menandakan loop utama berjalan lancar */
+    static uint32_t last_led_toggle = 0;
+    if (HAL_GetTick() - last_led_toggle >= 500)
+    {
+      last_led_toggle = HAL_GetTick();
+      HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
     }
 
     HAL_Delay(50); /* Delay sampling 50 ms (20 Hz) */

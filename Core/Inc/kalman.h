@@ -1,22 +1,12 @@
-/*
-*************************
-*                       *
-* İbrahim Cahit Özdemir *
-*                       *
-*     October 2021      *
-*                       *
-*************************
-*/
-
-#ifndef INC_GY521_H_
-#define INC_GY521_H_
-
-#endif /* INC_GY521_H_ */
+#ifndef INC_KALMAN_H_
+#define INC_KALMAN_H_
 
 #include <stdint.h>
 #include "stm32f1xx.h"
 
+#ifndef RAD_TO_DEG
 #define RAD_TO_DEG 57.295779513082320876798154814105
+#endif
 
 typedef struct {
     double Q_angle;
@@ -29,3 +19,4 @@ typedef struct {
 
 double Kalman_getAngle(Kalman_t *Kalman, double newAngle, double newRate, double dt);
 
+#endif /* INC_KALMAN_H_ */
