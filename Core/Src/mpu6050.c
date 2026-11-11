@@ -16,6 +16,30 @@ HAL_StatusTypeDef MPU6050_Init(MPU6050_t *mpu, I2C_HandleTypeDef *hi2c)
     mpu->hi2c = hi2c;
     mpu->dev_addr = MPU6050_I2C_ADDR;
 
+    /* Inisialisasi nilai pembacaan dan offset ke 0 */
+    mpu->accel_x_raw = 0;
+    mpu->accel_y_raw = 0;
+    mpu->accel_z_raw = 0;
+    mpu->temp_raw    = 0;
+    mpu->gyro_x_raw  = 0;
+    mpu->gyro_y_raw  = 0;
+    mpu->gyro_z_raw  = 0;
+
+    mpu->accel_x     = 0.0f;
+    mpu->accel_y     = 0.0f;
+    mpu->accel_z     = 0.0f;
+    mpu->temperature = 0.0f;
+    mpu->gyro_x      = 0.0f;
+    mpu->gyro_y      = 0.0f;
+    mpu->gyro_z      = 0.0f;
+
+    mpu->accel_offset_x = 0.0f;
+    mpu->accel_offset_y = 0.0f;
+    mpu->accel_offset_z = 0.0f;
+    mpu->gyro_offset_x  = 0.0f;
+    mpu->gyro_offset_y  = 0.0f;
+    mpu->gyro_offset_z  = 0.0f;
+
     /* 1. Periksa register WHO_AM_I (0x75) */
     uint8_t who_am_i = 0;
     if (HAL_I2C_Mem_Read(mpu->hi2c, mpu->dev_addr, MPU6050_REG_WHO_AM_I,
@@ -73,20 +97,60 @@ HAL_StatusTypeDef MPU6050_ReadAll(MPU6050_t *mpu)
     mpu->gyro_y_raw  = (int16_t)((buffer[10] << 8) | buffer[11]);
     mpu->gyro_z_raw  = (int16_t)((buffer[12] << 8) | buffer[13]);
 
-    /* Konversi ke satuan fisik */
-    mpu->accel_x     = (float)mpu->accel_x_raw / MPU6050_ACCEL_SENS_2G;
-    mpu->accel_y     = (float)mpu->accel_y_raw / MPU6050_ACCEL_SENS_2G;
-    mpu->accel_z     = (float)mpu->accel_z_raw / MPU6050_ACCEL_SENS_2G;
+    /* Konversi ke satuan fisik dan kurangi offset kalibrasi */
+    mpu->accel_x     = ((float)mpu->accel_x_raw / MPU6050_ACCEL_SENS_2G) - mpu->accel_offset_x;
+    mpu->accel_y     = ((float)mpu->accel_y_raw / MPU6050_ACCEL_SENS_2G) - mpu->accel_offset_y;
+    mpu->accel_z     = ((float)mpu->accel_z_raw / MPU6050_ACCEL_SENS_2G) - mpu->accel_offset_z;
 
     mpu->temperature = ((float)mpu->temp_raw / 340.0f) + 36.53f;
 
-    mpu->gyro_x      = (float)mpu->gyro_x_raw / MPU6050_GYRO_SENS_250;
-    mpu->gyro_y      = (float)mpu->gyro_y_raw / MPU6050_GYRO_SENS_250;
-    mpu->gyro_z      = (float)mpu->gyro_z_raw / MPU6050_GYRO_SENS_250;
+    mpu->gyro_x      = ((float)mpu->gyro_x_raw / MPU6050_GYRO_SENS_250) - mpu->gyro_offset_x;
+    mpu->gyro_y      = ((float)mpu->gyro_y_raw / MPU6050_GYRO_SENS_250) - mpu->gyro_offset_y;
+    mpu->gyro_z      = ((float)mpu->gyro_z_raw / MPU6050_GYRO_SENS_250) - mpu->gyro_offset_z;
 
     return HAL_OK;
 }
 
+HAL_StatusTypeDef MPU6050_Calibrate(MPU6050_t *mpu, uint16_t num_samples)
+{
+    if (mpu == NULL || mpu->hi2c == NULL || num_samples == 0) {
+        return HAL_ERROR;
+    }
 
+    double sum_ax = 0.0;
+    double sum_ay = 0.0;
+    double sum_az = 0.0;
+    double sum_gx = 0.0;
+    double sum_gy = 0.0;
+    double sum_gz = 0.0;
 
+    for (uint16_t i = 0; i < num_samples; i++) {
+        if (MPU6050_ReadAll(mpu) != HAL_OK) {
+            return HAL_ERROR;
+        }
+
+        /* Akumulasikan data fisik mentah sebelum offset kalibrasi */
+        sum_ax += (double)mpu->accel_x_raw / MPU6050_ACCEL_SENS_2G;
+        sum_ay += (double)mpu->accel_y_raw / MPU6050_ACCEL_SENS_2G;
+        sum_az += (double)mpu->accel_z_raw / MPU6050_ACCEL_SENS_2G;
+
+        sum_gx += (double)mpu->gyro_x_raw / MPU6050_GYRO_SENS_250;
+        sum_gy += (double)mpu->gyro_y_raw / MPU6050_GYRO_SENS_250;
+        sum_gz += (double)mpu->gyro_z_raw / MPU6050_GYRO_SENS_250;
+
+        HAL_Delay(2);
+    }
+
+    /* Hitung rata-rata statis (static averaging) */
+    mpu->accel_offset_x = (float)(sum_ax / (double)num_samples);
+    mpu->accel_offset_y = (float)(sum_ay / (double)num_samples);
+    /* Sumbu Z mengukur gravitasi bumi (+1.0g) pada posisi datar diam menghadap atas */
+    mpu->accel_offset_z = (float)((sum_az / (double)num_samples) - 1.0);
+
+    mpu->gyro_offset_x  = (float)(sum_gx / (double)num_samples);
+    mpu->gyro_offset_y  = (float)(sum_gy / (double)num_samples);
+    mpu->gyro_offset_z  = (float)(sum_gz / (double)num_samples);
+
+    return HAL_OK;
+}
 

@@ -61,7 +61,7 @@ typedef struct {
     int16_t gyro_y_raw;
     int16_t gyro_z_raw;
 
-    /* Data hasil konversi satuan fisik */
+    /* Data hasil konversi satuan fisik (setelah dikurangi offset) */
     float accel_x;              /* Akselerasi sumbu X (g) */
     float accel_y;              /* Akselerasi sumbu Y (g) */
     float accel_z;              /* Akselerasi sumbu Z (g) */
@@ -69,6 +69,14 @@ typedef struct {
     float gyro_x;               /* Kecepatan sudut sumbu X (°/s) */
     float gyro_y;               /* Kecepatan sudut sumbu Y (°/s) */
     float gyro_z;               /* Kecepatan sudut sumbu Z (°/s) */
+
+    /* Offset kalibrasi */
+    float accel_offset_x;       /* Offset akselerasi sumbu X (g) */
+    float accel_offset_y;       /* Offset akselerasi sumbu Y (g) */
+    float accel_offset_z;       /* Offset akselerasi sumbu Z (g) */
+    float gyro_offset_x;        /* Offset kecepatan sudut sumbu X (°/s) */
+    float gyro_offset_y;        /* Offset kecepatan sudut sumbu Y (°/s) */
+    float gyro_offset_z;        /* Offset kecepatan sudut sumbu Z (°/s) */
 } MPU6050_t;
 
 /**
@@ -80,11 +88,21 @@ typedef struct {
 HAL_StatusTypeDef MPU6050_Init(MPU6050_t *mpu, I2C_HandleTypeDef *hi2c);
 
 /**
-  * @brief  Membaca seluruh data (accel, temperatur, gyro) dengan burst read 14 byte.
+  * @brief  Membaca seluruh data (accel, temperatur, gyro) dengan burst read 14 byte
+  *         dan menerapkan offset kalibrasi pada data satuan fisik.
   * @param  mpu: Pointer ke struct MPU6050_t
   * @retval HAL status (HAL_OK jika sukses)
   */
 HAL_StatusTypeDef MPU6050_ReadAll(MPU6050_t *mpu);
+
+/**
+  * @brief  Kalibrasi akselerometer dan gyroscope menggunakan metode static averaging.
+  * @note   Sensor harus diletakkan dalam kondisi diam dan mendatar (horizontal, Z = +1.0g).
+  * @param  mpu: Pointer ke struct MPU6050_t
+  * @param  num_samples: Jumlah sampel data untuk rata-rata statis (misal: 500, 1000)
+  * @retval HAL status (HAL_OK jika sukses)
+  */
+HAL_StatusTypeDef MPU6050_Calibrate(MPU6050_t *mpu, uint16_t num_samples);
 
 #ifdef __cplusplus
 }

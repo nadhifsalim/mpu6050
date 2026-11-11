@@ -95,12 +95,12 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   /* Inisialisasi sensor MPU6050 */
-  mpu_status = MPU6050_Init(&mpu, &hi2c1);
-  if (mpu_status != HAL_OK)
+  MPU6050_Init(&mpu, &hi2c1);
+  while (MPU6050_Calibrate(&mpu, 20000) != HAL_OK)
   {
-    /* Inisialisasi gagal: cek koneksi kabel I2C / sensor */
-    Error_Handler();
+    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, 1);
   }
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, 0);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -223,14 +223,26 @@ static void MX_DMA_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN MX_GPIO_Init_1 */
 
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : LED_Pin */
+  GPIO_InitStruct.Pin = LED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
