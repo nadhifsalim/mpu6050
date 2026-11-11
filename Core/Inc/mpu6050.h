@@ -92,7 +92,10 @@ typedef struct {
     float accel_offset_z;       /* Offset akselerasi sumbu Z (g) */
     float gyro_offset_x;        /* Offset kecepatan sudut sumbu X (°/s) */
     float gyro_offset_y;        /* Offset kecepatan sudut sumbu Y (°/s) */
-    float gyro_offset_z;        /* Offset kecepatan sudut sumbu Z (°/s) */
+    float gyro_offset_z;       /* Offset kecepatan sudut sumbu Z (°/s) */
+
+    double KalmanAngleX;
+    double KalmanAngleY;
 } MPU6050_t;
 
 /**

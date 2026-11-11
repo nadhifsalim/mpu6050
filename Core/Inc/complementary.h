@@ -1,6 +1,4 @@
-#ifdef _COMPLEMENTARY_H
+#ifndef _COMPLEMENTARY_H
 #define _COMPLEMENTARY_H
 
 
-
-#endif
