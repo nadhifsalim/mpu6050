@@ -12,18 +12,18 @@
 #include "kalman.h"
 
 Kalman_t KalmanX = {
-    .Q_angle = 0.001,
+    .Q_angle = 0.0001,
     .Q_bias = 0.003,
-    .R_measure = 0.03,
+    .R_measure = 0.01,  
     .angle = 0.0,
     .bias = 0.0,
     .P = {{0.0, 0.0}, {0.0, 0.0}}
 };
 
 Kalman_t KalmanY = {
-    .Q_angle = 0.001,
+    .Q_angle = 0.0001,
     .Q_bias = 0.003,
-    .R_measure = 0.03,
+    .R_measure = 0.01,
     .angle = 0.0,
     .bias = 0.0,
     .P = {{0.0, 0.0}, {0.0, 0.0}}
