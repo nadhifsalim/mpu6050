@@ -3,7 +3,7 @@
 
 #include "mpu6050.h"
 
-#define COMP_ALPHA 1.0f
+#define COMP_ALPHA 0.98f
 
 #ifndef RAD_TO_DEG
 #define RAD_TO_DEG 57.295779513082320876798154814105f

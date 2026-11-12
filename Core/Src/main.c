@@ -22,6 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
 #include "mpu6050.h"
 #include "kalman.h"
 #include "complementary.h"
@@ -29,6 +30,11 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct
+{
+  float roll;
+  float pitch;
+} UART_MPU;
 
 /* USER CODE END PTD */
 
@@ -51,6 +57,7 @@ UART_HandleTypeDef huart1;
 /* USER CODE BEGIN PV */
 MPU6050_t mpu;
 HAL_StatusTypeDef mpu_status;
+UART_MPU uart;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -65,7 +72,32 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+static void format_float(char *buf, size_t size, float val)
+{
+  if (val < 0.0f)
+  {
+    val = -val;
+    int32_t int_part = (int32_t)val;
+    uint32_t frac_part = (uint32_t)((val - (float)int_part) * 100.0f + 0.5f);
+    if (frac_part >= 100)
+    {
+      int_part++;
+      frac_part -= 100;
+    }
+    snprintf(buf, size, "-%ld.%02lu", (long)int_part, (long)frac_part);
+  }
+  else
+  {
+    int32_t int_part = (int32_t)val;
+    uint32_t frac_part = (uint32_t)((val - (float)int_part) * 100.0f + 0.5f);
+    if (frac_part >= 100)
+    {
+      int_part++;
+      frac_part -= 100;
+    }
+    snprintf(buf, size, "%ld.%02lu", (long)int_part, (long)frac_part);
+  }
+}
 /* USER CODE END 0 */
 
 /**
@@ -110,14 +142,11 @@ int main(void)
     HAL_Delay(100);
   }
 
-  
-
   /* Kalibrasi sensor (1000 sampel statis ~2 detik) */
   while (MPU6050_Calibrate(&mpu, 1000) != HAL_OK)
   {
     /* Kalibrasi gagal: kedipkan LED */
-    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-    HAL_Delay(250);
+    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
   }
   /* Kalibrasi selesai: matikan LED indikator kalibrasi */
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
@@ -134,26 +163,26 @@ int main(void)
       /* Hitung estimasi orientasi sudut roll dan pitch dengan Kalman Filter */
       // MPU6050_Update_Kalman(&mpu);
       MPU6050_Update_Angle(&mpu);
+      uart.pitch = mpu.pitch;
+      uart.roll = mpu.roll;
 
-      /*
-       * Hasil akhir estimasi sudut menggunakan Kalman Filter:
-       * Roll  (°) : mpu.roll_k
-       * Pitch (°) : mpu.pitch_k
-       *
-       * Data pembacaan sensor:
-       * Akselerometer (g)   : mpu.accel_x, mpu.accel_y, mpu.accel_z
-       * Suhu (°C)           : mpu.temperature
-       * Gyroscope (°/s)     : mpu.gyro_x, mpu.gyro_y, mpu.gyro_z
-       */
+      char roll_str[16];
+      char pitch_str[16];
+      char tx_buf[64];
+
+      format_float(roll_str, sizeof(roll_str), mpu.roll);
+      format_float(pitch_str, sizeof(pitch_str), mpu.pitch);
+      int len = snprintf(tx_buf, sizeof(tx_buf), "Roll: %s, Pitch: %s\r\n", roll_str, pitch_str);
+      HAL_UART_Transmit(&huart1, (uint8_t*)tx_buf, (uint16_t)len, HAL_MAX_DELAY);
     }
 
     /* Heartbeat LED: berkedip setiap 500 ms menandakan loop utama berjalan lancar */
-    static uint32_t last_led_toggle = 0;
-    if (HAL_GetTick() - last_led_toggle >= 500)
-    {
-      last_led_toggle = HAL_GetTick();
-      HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-    }
+    // static uint32_t last_led_toggle = 0;
+    // if (HAL_GetTick() - last_led_toggle >= 500)
+    // {
+    //   last_led_toggle = HAL_GetTick();
+    //   HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    // }
 
     HAL_Delay(50); /* Delay sampling 50 ms (20 Hz) */
     /* USER CODE END WHILE */
