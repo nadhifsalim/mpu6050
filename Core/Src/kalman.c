@@ -31,9 +31,9 @@ Kalman_t KalmanY = {
 
 void Kalman_Init(Kalman_t *Kalman)
 {
-    Kalman->Q_angle = 0.001;
+    Kalman->Q_angle = 0.0001;
     Kalman->Q_bias = 0.003;
-    Kalman->R_measure = 0.03;
+    Kalman->R_measure = 0.01;
     Kalman->angle = 0.0;
     Kalman->bias = 0.0;
     Kalman->P[0][0] = 0.0;
