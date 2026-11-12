@@ -32,8 +32,8 @@
 /* USER CODE BEGIN PTD */
 typedef struct
 {
-  float roll;
-  float pitch;
+  float comple;
+  float kalman;
 } UART_MPU;
 
 /* USER CODE END PTD */
@@ -161,18 +161,18 @@ int main(void)
     if (mpu_status == HAL_OK)
     {
       /* Hitung estimasi orientasi sudut roll dan pitch dengan Kalman Filter */
-      // MPU6050_Update_Kalman(&mpu);
+      MPU6050_Update_Kalman(&mpu);
       MPU6050_Update_Angle(&mpu);
-      uart.pitch = mpu.pitch;
-      uart.roll = mpu.roll;
+      uart.comple = mpu.roll;
+      uart.kalman = mpu.roll_k;
 
-      char roll_str[16];
-      char pitch_str[16];
+      char comple[16];
+      char kalman[16];
       char tx_buf[64];
 
-      format_float(roll_str, sizeof(roll_str), mpu.roll);
-      format_float(pitch_str, sizeof(pitch_str), mpu.pitch);
-      int len = snprintf(tx_buf, sizeof(tx_buf), "Roll: %s, Pitch: %s\r\n", roll_str, pitch_str);
+      format_float(comple, sizeof(comple), mpu.roll);
+      format_float(kalman, sizeof(kalman), mpu.roll_k);
+      int len = snprintf(tx_buf, sizeof(tx_buf), "Comple: %s, Kalman: %s\r\n", comple, kalman);
       HAL_UART_Transmit(&huart1, (uint8_t*)tx_buf, (uint16_t)len, HAL_MAX_DELAY);
     }
 
