@@ -25,6 +25,7 @@
 #include "mpu6050.h"
 #include "kalman.h"
 #include "complementary.h"
+#include "common/mavlink.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -139,11 +140,8 @@ int main(void)
   /* Kalibrasi startup gyroscope (500 sampel statis ~1 detik) */
   while (MPU6050_Calibrate_Gyro(&mpu) != HAL_OK)
   {
-    /* Kalibrasi gagal: kedipkan LED */
-    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-    HAL_Delay(100);
+    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
   }
-  /* Kalibrasi selesai: matikan LED indikator kalibrasi */
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
   /* USER CODE END 2 */
 

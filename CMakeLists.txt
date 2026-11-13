@@ -55,6 +55,10 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
 )
 
+target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM PRIVATE
+    lib/mavlink
+)   
+
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
