@@ -112,6 +112,7 @@ typedef struct {
 
     float roll_k;               /* Estimasi sudut Roll hasil Kalman Filter (°) */
     float pitch_k;              /* Estimasi sudut Pitch hasil Kalman Filter (°) */
+    float yaw_k;                /* Estimasi sudut Yaw hasil Kalman Filter (°) */
 
     float roll;                 /* Estimasi sudut Roll hasil Complementary Filter (°) */
     float pitch;                /* Estimasi sudut Pitch hasil Complementary Filter (°) */

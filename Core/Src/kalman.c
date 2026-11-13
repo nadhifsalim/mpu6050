@@ -29,6 +29,15 @@ Kalman_t KalmanY = {
     .P = {{0.0f, 0.0f}, {0.0f, 0.0f}}
 };
 
+Kalman_t KalmanZ = {
+    .Q_angle = 0.0001f,
+    .Q_bias = 0.003f,
+    .R_measure = 0.01f,
+    .angle = 0.0f,
+    .bias = 0.0f,
+    .P = {{0.0f, 0.0f}, {0.0f, 0.0f}}
+};
+
 void Kalman_Init(Kalman_t *Kalman)
 {
     Kalman->Q_angle = 0.0001f;
@@ -47,7 +56,7 @@ void Kalman_SetAngle(Kalman_t *Kalman, float angle)
     Kalman->angle = angle;
 }
 
-float Kalman_getAngle(Kalman_t *Kalman, float newAngle, float newRate, float dt)
+float Kalman_Predict(Kalman_t *Kalman, float newRate, float dt)
 {
     float rate = newRate - Kalman->bias;
     Kalman->angle += dt * rate;
@@ -56,6 +65,13 @@ float Kalman_getAngle(Kalman_t *Kalman, float newAngle, float newRate, float dt)
     Kalman->P[0][1] -= dt * Kalman->P[1][1];
     Kalman->P[1][0] -= dt * Kalman->P[1][1];
     Kalman->P[1][1] += Kalman->Q_bias * dt;
+
+    return Kalman->angle;
+}
+
+float Kalman_getAngle(Kalman_t *Kalman, float newAngle, float newRate, float dt)
+{
+    Kalman_Predict(Kalman, newRate, dt);
 
     float S = Kalman->P[0][0] + Kalman->R_measure;
     float K[2];
@@ -102,8 +118,10 @@ void MPU6050_Update_Kalman(MPU6050_t *dev)
     if (!dev->kalman_init) {
         Kalman_SetAngle(&KalmanX, acc_roll);
         Kalman_SetAngle(&KalmanY, acc_pitch);
+        Kalman_SetAngle(&KalmanZ, 0.0f);
         dev->roll_k  = acc_roll;
         dev->pitch_k = acc_pitch;
+        dev->yaw_k   = 0.0f;
         dev->kalman_init = 1;
         return;
     }
@@ -118,4 +136,20 @@ void MPU6050_Update_Kalman(MPU6050_t *dev)
 
     /* Update filter Kalman untuk sumbu Pitch */
     dev->pitch_k = Kalman_getAngle(&KalmanY, acc_pitch, dev->gyro_y - dev->gyro_offset_y, dt);
+
+    /* Update filter Kalman untuk sumbu Yaw (prediksi gyro Z + deadband + wrapping [-180, +180]) */
+    float gyro_rate_z = dev->gyro_z - dev->gyro_offset_z;
+    if (fabsf(gyro_rate_z) < KALMAN_YAW_DEADBAND) {
+        gyro_rate_z = 0.0f;
+    }
+
+    float yaw_k = Kalman_Predict(&KalmanZ, gyro_rate_z, dt);
+    while (yaw_k > 180.0f) {
+        yaw_k -= 360.0f;
+    }
+    while (yaw_k < -180.0f) {
+        yaw_k += 360.0f;
+    }
+    Kalman_SetAngle(&KalmanZ, yaw_k);
+    dev->yaw_k = yaw_k;
 }

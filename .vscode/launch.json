@@ -2,32 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "STM32 BluePill (OpenOCD)",
-            "cwd": "${workspaceFolder}",
-            "executable": "${workspaceFolder}/build/Debug/mpu6050.elf",
-            "request": "launch",
-            "type": "cortex-debug",
-            "servertype": "openocd",
-            "device": "STM32F103C8",
-            "runToEntryPoint": "main",
-            "gdbPath": "/usr/bin/gdb-multiarch",
-            "objdumpPath": "/usr/bin/arm-none-eabi-objdump",
-            "armToolchainPath": "/usr/bin",
-            "toolchainPrefix": "arm-none-eabi",
-            "serverpath": "/usr/bin/openocd",
-            "configFiles": [
-                "interface/stlink.cfg",
-                "target/stm32f1x.cfg"
-            ],
-            "liveWatch": {
-                "enabled": true,
-                "samplesPerSecond": 4
-            },
-            "preLaunchTask": "Build Debug",
-            "showDevDebugOutput": "none"
-        },
-        {
-            "name": "STM32 BluePill Clone (CPUTAPID 0x2ba01477)",
+            "name": "STM32 BluePill (Auto-Detect Genuine/Clone)",
             "cwd": "${workspaceFolder}",
             "executable": "${workspaceFolder}/build/Debug/mpu6050.elf",
             "request": "launch",
@@ -41,7 +16,10 @@
             "toolchainPrefix": "arm-none-eabi",
             "serverpath": "/usr/bin/openocd",
             "openOCDPreConfigLaunchCommands": [
-                "set CPUTAPID 0x2ba01477"
+                "set CPUTAPID 0"
+            ],
+            "openOCDLaunchCommands": [
+                "reset_config none separate"
             ],
             "configFiles": [
                 "interface/stlink.cfg",

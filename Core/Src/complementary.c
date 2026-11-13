@@ -1,21 +1,8 @@
-/**
-  ******************************************************************************
-  * @file    complementary.c
-  * @brief   Implementasi Complementary Filter untuk sensor MPU6050 (Roll, Pitch, Yaw).
-  ******************************************************************************
-  */
-
 #include "complementary.h"
 #include <math.h>
 
 static uint32_t last_tick = 0;
 
-/**
-  * @brief  Kalibrasi startup gyroscope saat sensor dalam posisi diam.
-  *         Mengambil 500 sampel dengan delay 2 ms untuk menghitung offset sumbu X, Y, Z.
-  * @param  dev: Pointer ke struct MPU6050_t
-  * @retval HAL_StatusTypeDef (HAL_OK jika sukses, HAL_ERROR jika gagal)
-  */
 HAL_StatusTypeDef MPU6050_Calibrate_Gyro(MPU6050_t *dev)
 {
     if (dev == NULL || dev->hi2c == NULL) {
@@ -50,13 +37,6 @@ HAL_StatusTypeDef MPU6050_Calibrate_Gyro(MPU6050_t *dev)
     return HAL_OK;
 }
 
-/**
-  * @brief  Update estimasi sudut orientasi (Roll, Pitch, Yaw) menggunakan Complementary Filter.
-  *         - Mengurangi offset kalibrasi gyro sebelum integrasi.
-  *         - Menerapkan Adaptive Alpha untuk menolak noise akselerasi linier pada Roll & Pitch.
-  *         - Menerapkan deadband filter dan integrasi delta time (dt) dengan wrapping [-180, +180] deg untuk Yaw.
-  * @param  dev: Pointer ke struct MPU6050_t
-  */
 void MPU6050_Update_Angle(MPU6050_t *dev)
 {
     if (dev == NULL) {
@@ -67,16 +47,31 @@ void MPU6050_Update_Angle(MPU6050_t *dev)
     float dt = (float)(now - last_tick) / 1000.0f;
     last_tick = now;
 
-    /* 1. Kurangi offset kalibrasi gyro dari pembacaan saat ini sebelum integrasi */
-    float gyro_rate_x = dev->gyro_x - dev->gyro_offset_x;
-    float gyro_rate_y = dev->gyro_y - dev->gyro_offset_y;
-    float gyro_rate_z = dev->gyro_z - dev->gyro_offset_z;
+    /* Raw bias-corrected gyro rates in MPU6050 sensor frame */
+    float raw_gx = dev->gyro_x - dev->gyro_offset_x;
+    float raw_gy = dev->gyro_y - dev->gyro_offset_y;
+    float raw_gz = dev->gyro_z - dev->gyro_offset_z;
 
-    /* 2. Hitung sudut roll dan pitch referensi dari accelerometer */
-    float acc_roll  = atan2f(dev->accel_y, dev->accel_z) * RAD_TO_DEG;
-    float acc_pitch = atan2f(-dev->accel_x, sqrtf(dev->accel_y * dev->accel_y + dev->accel_z * dev->accel_z)) * RAD_TO_DEG;
+    /*
+     * Map MPU6050 frame (+X forward, +Y left, +Z up)
+     * -> Aerospace NED body frame (+X nose, +Y right wing, +Z down).
+     *
+     * NOTE: If your MPU6050 silkscreen +X points toward the TAIL instead of the NOSE,
+     * negate ax, ay, gyro_rate_x, and gyro_rate_y (keep gyro_rate_z = -raw_gz).
+     */
+    float ax =  dev->accel_x;
+    float ay = -dev->accel_y;
+    float az =  dev->accel_z;
 
-    /* Inisialisasi awal pada pemanggilan pertama: kunci sudut langsung ke orientasi awal */
+    float gyro_rate_x =  raw_gx;   /* +Roll  = right wing down */
+    float gyro_rate_y = -raw_gy;   /* +Pitch = nose up         */
+    float gyro_rate_z = -raw_gz;   /* +Yaw   = nose right (CW) */
+
+    /* Reference roll and pitch from accelerometer in NED frame */
+    float acc_roll  = atan2f(ay, az) * RAD_TO_DEG;
+    float acc_pitch = atan2f(-ax, sqrtf(ay * ay + az * az)) * RAD_TO_DEG;
+
+    /* Lock initial angles on first call */
     if (!dev->angle_init) {
         dev->roll  = acc_roll;
         dev->pitch = acc_pitch;
@@ -85,47 +80,35 @@ void MPU6050_Update_Angle(MPU6050_t *dev)
         return;
     }
 
-    /* Proteksi delta time jika terjadi anomali delay atau overflow */
+    /* Protect against abnormal dt */
     if (dt <= 0.0f || dt > 0.5f) {
-        dt = 0.05f; /* Default fallback ke 20Hz (~50ms) */
+        dt = 0.05f;
     }
 
-    /* 3. Adaptive Alpha untuk Roll & Pitch:
-          Hitung magnitudo total vektor akselerometer: sqrt(ax^2 + ay^2 + az^2).
-          Jika deviasi dari 1.0g melebihi 0.2g (terindikasi akselerasi linier / goncangan),
-          set alpha = 1.0f untuk sementara waktu hanya percaya pada gyro.
-          Jika stabil (sekitar 1.0g), gunakan nilai default COMP_ALPHA (0.98f). */
-    float accel_mag = sqrtf(dev->accel_x * dev->accel_x +
-                            dev->accel_y * dev->accel_y +
-                            dev->accel_z * dev->accel_z);
-
+    /* Adaptive alpha to reject linear acceleration */
+    float accel_mag = sqrtf(ax * ax + ay * ay + az * az);
     float alpha = COMP_ALPHA;
     if (fabsf(accel_mag - 1.0f) > COMP_ACCEL_TOLERANCE) {
         alpha = 1.0f;
     }
 
-    /* Complementary Filter untuk Roll (dengan proteksi transisi batas -180 / +180 derajat) */
+    /* Complementary Filter for Roll */
     if ((acc_roll < -90.0f && dev->roll > 90.0f) || (acc_roll > 90.0f && dev->roll < -90.0f)) {
         dev->roll = acc_roll;
     } else {
         dev->roll = alpha * (dev->roll + gyro_rate_x * dt) + (1.0f - alpha) * acc_roll;
     }
 
-    /* Complementary Filter untuk Pitch */
+    /* Complementary Filter for Pitch */
     dev->pitch = alpha * (dev->pitch + gyro_rate_y * dt) + (1.0f - alpha) * acc_pitch;
 
-    /* 4. Stabilized Z-Axis Yaw Tracking:
-          - Terapkan deadband filter: jika laju gyro Z absolut < 0.5 deg/s,
-            paksa ke 0.0f untuk memutus drift akumulasi akibat noise sensor saat diam.
-          - Integrasikan laju Z terhadap delta time (dt).
-          - Lakukan angle wrapping agar sudut Yaw selalu berada dalam batas -180.0° s/d +180.0°. */
+    /* Stabilized Z-Axis Yaw Tracking */
     if (fabsf(gyro_rate_z) < COMP_YAW_DEADBAND) {
         gyro_rate_z = 0.0f;
     }
 
     dev->yaw += gyro_rate_z * dt;
 
-    /* Wrapping batas sudut Yaw [-180.0, +180.0] derajat */
     while (dev->yaw > 180.0f) {
         dev->yaw -= 360.0f;
     }

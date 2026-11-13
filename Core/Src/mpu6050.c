@@ -1,10 +1,3 @@
-/**
-  ******************************************************************************
-  * @file    mpu6050.c
-  * @brief   Implementasi driver sensor MPU6050 berbasis STM32 HAL (I2C).
-  ******************************************************************************
-  */
-
 #include "mpu6050.h"
 
 HAL_StatusTypeDef MPU6050_Init(MPU6050_t *mpu, I2C_HandleTypeDef *hi2c)
@@ -44,8 +37,9 @@ HAL_StatusTypeDef MPU6050_Init(MPU6050_t *mpu, I2C_HandleTypeDef *hi2c)
     mpu->yaw            = 0.0f;
     mpu->roll_k         = 0.0f;
     mpu->pitch_k        = 0.0f;
+    mpu->yaw_k          = 0.0f;
 
-    /* 1. Periksa register WHO_AM_I (0x75) */
+    /* Periksa register WHO_AM_I (0x75) */
     uint8_t who_am_i = 0;
     if (HAL_I2C_Mem_Read(mpu->hi2c, mpu->dev_addr, MPU6050_REG_WHO_AM_I,
                          I2C_MEMADD_SIZE_8BIT, &who_am_i, 1, MPU6050_I2C_TIMEOUT) != HAL_OK) {
@@ -56,7 +50,7 @@ HAL_StatusTypeDef MPU6050_Init(MPU6050_t *mpu, I2C_HandleTypeDef *hi2c)
         return HAL_ERROR; /* Sensor tidak cocok atau tidak terdeteksi */
     }
 
-    /* 2. Reset sensor untuk mengembalikan semua register ke kondisi default */
+    /* Reset sensor untuk mengembalikan semua register ke kondisi default */
     uint8_t reg_val = MPU6050_RESET;
     if (HAL_I2C_Mem_Write(mpu->hi2c, mpu->dev_addr, MPU6050_REG_PWR_MGMT_1,
                           I2C_MEMADD_SIZE_8BIT, &reg_val, 1, MPU6050_I2C_TIMEOUT) != HAL_OK) {
@@ -64,35 +58,35 @@ HAL_StatusTypeDef MPU6050_Init(MPU6050_t *mpu, I2C_HandleTypeDef *hi2c)
     }
     HAL_Delay(50);
 
-    /* 3. Bangunkan sensor dan atur clock source ke PLL gyro sumbu X (lebih stabil dari RC internal) */
+    /* Bangunkan sensor dan atur clock source ke PLL gyro sumbu X (lebih stabil dari RC internal) */
     reg_val = MPU6050_CLK_PLL_XGYRO;
     if (HAL_I2C_Mem_Write(mpu->hi2c, mpu->dev_addr, MPU6050_REG_PWR_MGMT_1,
                           I2C_MEMADD_SIZE_8BIT, &reg_val, 1, MPU6050_I2C_TIMEOUT) != HAL_OK) {
         return HAL_ERROR;
     }
 
-    /* 4. Atur Digital Low Pass Filter (DLPF) ~42Hz untuk meredam noise getaran mekanik */
+    /* Atur Digital Low Pass Filter (DLPF) ~42Hz untuk meredam noise getaran mekanik */
     reg_val = MPU6050_DLPF_42HZ;
     if (HAL_I2C_Mem_Write(mpu->hi2c, mpu->dev_addr, MPU6050_REG_CONFIG,
                           I2C_MEMADD_SIZE_8BIT, &reg_val, 1, MPU6050_I2C_TIMEOUT) != HAL_OK) {
         return HAL_ERROR;
     }
 
-    /* 5. Atur Sample Rate Divider (SMPLRT_DIV = 0 -> output rate = 1kHz) */
+    /* Atur Sample Rate Divider (SMPLRT_DIV = 0 -> output rate = 1kHz) */
     reg_val = 0x00;
     if (HAL_I2C_Mem_Write(mpu->hi2c, mpu->dev_addr, MPU6050_REG_SMPLRT_DIV,
                           I2C_MEMADD_SIZE_8BIT, &reg_val, 1, MPU6050_I2C_TIMEOUT) != HAL_OK) {
         return HAL_ERROR;
     }
 
-    /* 6. Atur range akselerometer ke ±2g (ACCEL_CONFIG 0x1C) */
+    /* Atur range akselerometer ke ±2g (ACCEL_CONFIG 0x1C) */
     reg_val = MPU6050_ACCEL_FS_2G;
     if (HAL_I2C_Mem_Write(mpu->hi2c, mpu->dev_addr, MPU6050_REG_ACCEL_CONFIG,
                           I2C_MEMADD_SIZE_8BIT, &reg_val, 1, MPU6050_I2C_TIMEOUT) != HAL_OK) {
         return HAL_ERROR;
     }
 
-    /* 7. Atur range gyroscope ke ±250 °/s (GYRO_CONFIG 0x1B) */
+    /* Atur range gyroscope ke ±250 °/s (GYRO_CONFIG 0x1B) */
     reg_val = MPU6050_GYRO_FS_250;
     if (HAL_I2C_Mem_Write(mpu->hi2c, mpu->dev_addr, MPU6050_REG_GYRO_CONFIG,
                           I2C_MEMADD_SIZE_8BIT, &reg_val, 1, MPU6050_I2C_TIMEOUT) != HAL_OK) {

@@ -153,27 +153,27 @@ int main(void)
     if (MPU6050_ReadAll(&mpu) == HAL_OK)
     {
       MPU6050_Update_Kalman(&mpu);
-      MPU6050_Update_Angle(&mpu);
-      uart.comple = mpu.roll;
-      uart.kalman = mpu.roll_k;
+      // MPU6050_Update_Angle(&mpu);
+      // uart.comple = mpu.roll;
+      // uart.kalman = mpu.roll_k;
 
-      char roll_str[16];
-      char pitch_str[16];
-      char yaw_str[16];
-      char tx_buf[96];
+      // char roll_str[16];
+      // char pitch_str[16];
+      // char yaw_str[16];
+      // char tx_buf[96];
 
-      format_float(roll_str, sizeof(roll_str), mpu.roll);
-      format_float(pitch_str, sizeof(pitch_str), mpu.pitch);
-      format_float(yaw_str, sizeof(yaw_str), mpu.yaw);
-      int len = snprintf(tx_buf, sizeof(tx_buf), "Roll: %s, Pitch: %s, Yaw: %s\r\n", roll_str, pitch_str, yaw_str);
-      HAL_UART_Transmit(&huart1, (uint8_t*)tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+      // format_float(roll_str, sizeof(roll_str), mpu.roll);
+      // format_float(pitch_str, sizeof(pitch_str), mpu.pitch);
+      // format_float(yaw_str, sizeof(yaw_str), mpu.yaw);
+      // int len = snprintf(tx_buf, sizeof(tx_buf), "Roll: %s, Pitch: %s, Yaw: %s\r\n", roll_str, pitch_str, yaw_str);
+      // HAL_UART_Transmit(&huart1, (uint8_t*)tx_buf, (uint16_t)len, HAL_MAX_DELAY);
 
-      /* Comment this call to send only plain-text data without MAVLink format */
+      // /* Comment this call to send only plain-text data without MAVLink format */
       MAVLink_Attitude_Send(&huart1, &(MAVLink_Attitude_t){
           .time_boot_ms = HAL_GetTick(),
-          .roll         = mpu.roll * MAVLINK_DEG_TO_RAD,
-          .pitch        = mpu.pitch * MAVLINK_DEG_TO_RAD,
-          .yaw          = mpu.yaw * MAVLINK_DEG_TO_RAD,
+          .roll         = mpu.roll_k * MAVLINK_DEG_TO_RAD,
+          .pitch        = mpu.pitch_k * MAVLINK_DEG_TO_RAD,
+          .yaw          = mpu.yaw_k * MAVLINK_DEG_TO_RAD,
           .rollspeed    = (mpu.gyro_x - mpu.gyro_offset_x) * MAVLINK_DEG_TO_RAD,
           .pitchspeed   = (mpu.gyro_y - mpu.gyro_offset_y) * MAVLINK_DEG_TO_RAD,
           .yawspeed     = (mpu.gyro_z - mpu.gyro_offset_z) * MAVLINK_DEG_TO_RAD
