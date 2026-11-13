@@ -48,6 +48,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/mpu6050.c
     Core/Src/complementary.c
     Core/Src/kalman.c
+    Core/Src/mavlink_attitude.c
 )
 
 # Add include paths

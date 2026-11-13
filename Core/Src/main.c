@@ -25,7 +25,7 @@
 #include "mpu6050.h"
 #include "kalman.h"
 #include "complementary.h"
-#include "common/mavlink.h"
+#include "mavlink_attitude.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -167,6 +167,17 @@ int main(void)
       format_float(yaw_str, sizeof(yaw_str), mpu.yaw);
       int len = snprintf(tx_buf, sizeof(tx_buf), "Roll: %s, Pitch: %s, Yaw: %s\r\n", roll_str, pitch_str, yaw_str);
       HAL_UART_Transmit(&huart1, (uint8_t*)tx_buf, (uint16_t)len, HAL_MAX_DELAY);
+
+      /* Comment this call to send only plain-text data without MAVLink format */
+      MAVLink_Attitude_Send(&huart1, &(MAVLink_Attitude_t){
+          .time_boot_ms = HAL_GetTick(),
+          .roll         = mpu.roll * MAVLINK_DEG_TO_RAD,
+          .pitch        = mpu.pitch * MAVLINK_DEG_TO_RAD,
+          .yaw          = mpu.yaw * MAVLINK_DEG_TO_RAD,
+          .rollspeed    = (mpu.gyro_x - mpu.gyro_offset_x) * MAVLINK_DEG_TO_RAD,
+          .pitchspeed   = (mpu.gyro_y - mpu.gyro_offset_y) * MAVLINK_DEG_TO_RAD,
+          .yawspeed     = (mpu.gyro_z - mpu.gyro_offset_z) * MAVLINK_DEG_TO_RAD
+      });
     }
 
     HAL_Delay(50); /* Delay sampling 50 ms (20 Hz) */
