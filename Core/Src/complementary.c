@@ -27,25 +27,25 @@ HAL_StatusTypeDef MPU6050_Calibrate_Gyro(MPU6050_t *dev)
     dev->gyro_offset_y = 0.0f;
     dev->gyro_offset_z = 0.0f;
 
-    double sum_gx = 0.0;
-    double sum_gy = 0.0;
-    double sum_gz = 0.0;
+    float sum_gx = 0.0f;
+    float sum_gy = 0.0f;
+    float sum_gz = 0.0f;
 
     for (uint16_t i = 0; i < COMP_CALIB_SAMPLES; i++) {
         if (MPU6050_ReadAll(dev) != HAL_OK) {
             return HAL_ERROR;
         }
 
-        sum_gx += (double)dev->gyro_x;
-        sum_gy += (double)dev->gyro_y;
-        sum_gz += (double)dev->gyro_z;
+        sum_gx += dev->gyro_x;
+        sum_gy += dev->gyro_y;
+        sum_gz += dev->gyro_z;
 
         HAL_Delay(2);
     }
 
-    dev->gyro_offset_x = (float)(sum_gx / (double)COMP_CALIB_SAMPLES);
-    dev->gyro_offset_y = (float)(sum_gy / (double)COMP_CALIB_SAMPLES);
-    dev->gyro_offset_z = (float)(sum_gz / (double)COMP_CALIB_SAMPLES);
+    dev->gyro_offset_x = sum_gx / (float)COMP_CALIB_SAMPLES;
+    dev->gyro_offset_y = sum_gy / (float)COMP_CALIB_SAMPLES;
+    dev->gyro_offset_z = sum_gz / (float)COMP_CALIB_SAMPLES;
 
     return HAL_OK;
 }
@@ -104,8 +104,14 @@ void MPU6050_Update_Angle(MPU6050_t *dev)
         alpha = 1.0f;
     }
 
-    /* Complementary Filter untuk Roll dan Pitch */
-    dev->roll  = alpha * (dev->roll  + gyro_rate_x * dt) + (1.0f - alpha) * acc_roll;
+    /* Complementary Filter untuk Roll (dengan proteksi transisi batas -180 / +180 derajat) */
+    if ((acc_roll < -90.0f && dev->roll > 90.0f) || (acc_roll > 90.0f && dev->roll < -90.0f)) {
+        dev->roll = acc_roll;
+    } else {
+        dev->roll = alpha * (dev->roll + gyro_rate_x * dt) + (1.0f - alpha) * acc_roll;
+    }
+
+    /* Complementary Filter untuk Pitch */
     dev->pitch = alpha * (dev->pitch + gyro_rate_y * dt) + (1.0f - alpha) * acc_pitch;
 
     /* 4. Stabilized Z-Axis Yaw Tracking:

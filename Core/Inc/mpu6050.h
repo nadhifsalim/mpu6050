@@ -102,10 +102,7 @@ typedef struct {
     float gyro_y;               /* Kecepatan sudut sumbu Y (°/s) */
     float gyro_z;               /* Kecepatan sudut sumbu Z (°/s) */
 
-    /* Offset kalibrasi */
-    float accel_offset_x;       /* Offset akselerasi sumbu X (g) */
-    float accel_offset_y;       /* Offset akselerasi sumbu Y (g) */
-    float accel_offset_z;       /* Offset akselerasi sumbu Z (g) */
+    /* Offset kalibrasi gyroscope */
     float gyro_offset_x;        /* Offset kecepatan sudut sumbu X (°/s) */
     float gyro_offset_y;        /* Offset kecepatan sudut sumbu Y (°/s) */
     float gyro_offset_z;        /* Offset kecepatan sudut sumbu Z (°/s) */
@@ -113,20 +110,13 @@ typedef struct {
     uint8_t angle_init;
     uint8_t kalman_init;
 
-    double roll_k;              /* Estimasi sudut Roll hasil Kalman Filter (°) */
-    double pitch_k;             /* Estimasi sudut Pitch hasil Kalman Filter (°) */
+    float roll_k;               /* Estimasi sudut Roll hasil Kalman Filter (°) */
+    float pitch_k;              /* Estimasi sudut Pitch hasil Kalman Filter (°) */
 
     float roll;                 /* Estimasi sudut Roll hasil Complementary Filter (°) */
     float pitch;                /* Estimasi sudut Pitch hasil Complementary Filter (°) */
     float yaw;                  /* Estimasi sudut Yaw hasil Complementary Filter (°) */
 } MPU6050_t;
-
-/**
-  * @brief  Kalibrasi zero-offset gyroscope menggunakan static averaging (500 sampel).
-  * @param  mpu: Pointer ke struct MPU6050_t
-  * @retval HAL status (HAL_OK jika sukses)
-  */
-HAL_StatusTypeDef MPU6050_Calibrate_Gyro(MPU6050_t *mpu);
 
 /**
   * @brief  Inisialisasi sensor MPU6050: cek WHO_AM_I, bangunkan sensor, dan atur range.
@@ -138,20 +128,11 @@ HAL_StatusTypeDef MPU6050_Init(MPU6050_t *mpu, I2C_HandleTypeDef *hi2c);
 
 /**
   * @brief  Membaca seluruh data (accel, temperatur, gyro) dengan burst read 14 byte
-  *         dan menerapkan offset kalibrasi pada data satuan fisik.
+  *         dan mengonversinya ke satuan fisik.
   * @param  mpu: Pointer ke struct MPU6050_t
   * @retval HAL status (HAL_OK jika sukses)
   */
 HAL_StatusTypeDef MPU6050_ReadAll(MPU6050_t *mpu);
-
-/**
-  * @brief  Kalibrasi akselerometer dan gyroscope menggunakan metode static averaging.
-  * @note   Sensor harus diletakkan dalam kondisi diam dan mendatar (horizontal, Z = +1.0g).
-  * @param  mpu: Pointer ke struct MPU6050_t
-  * @param  num_samples: Jumlah sampel data untuk rata-rata statis (misal: 500, 1000)
-  * @retval HAL status (HAL_OK jika sukses)
-  */
-HAL_StatusTypeDef MPU6050_Calibrate(MPU6050_t *mpu, uint16_t num_samples);
 
 #ifdef __cplusplus
 }

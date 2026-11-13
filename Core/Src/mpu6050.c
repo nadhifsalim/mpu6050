@@ -33,9 +33,6 @@ HAL_StatusTypeDef MPU6050_Init(MPU6050_t *mpu, I2C_HandleTypeDef *hi2c)
     mpu->gyro_y      = 0.0f;
     mpu->gyro_z      = 0.0f;
 
-    mpu->accel_offset_x = 0.0f;
-    mpu->accel_offset_y = 0.0f;
-    mpu->accel_offset_z = 0.0f;
     mpu->gyro_offset_x  = 0.0f;
     mpu->gyro_offset_y  = 0.0f;
     mpu->gyro_offset_z  = 0.0f;
@@ -45,8 +42,8 @@ HAL_StatusTypeDef MPU6050_Init(MPU6050_t *mpu, I2C_HandleTypeDef *hi2c)
     mpu->roll           = 0.0f;
     mpu->pitch          = 0.0f;
     mpu->yaw            = 0.0f;
-    mpu->roll_k         = 0.0;
-    mpu->pitch_k        = 0.0;
+    mpu->roll_k         = 0.0f;
+    mpu->pitch_k        = 0.0f;
 
     /* 1. Periksa register WHO_AM_I (0x75) */
     uint8_t who_am_i = 0;
@@ -137,49 +134,6 @@ HAL_StatusTypeDef MPU6050_ReadAll(MPU6050_t *mpu)
     mpu->gyro_x      = (float)mpu->gyro_x_raw / MPU6050_GYRO_SENS_250;
     mpu->gyro_y      = (float)mpu->gyro_y_raw / MPU6050_GYRO_SENS_250;
     mpu->gyro_z      = (float)mpu->gyro_z_raw / MPU6050_GYRO_SENS_250;
-
-    return HAL_OK;
-}
-
-HAL_StatusTypeDef MPU6050_Calibrate(MPU6050_t *mpu, uint16_t num_samples)
-{
-    if (mpu == NULL || mpu->hi2c == NULL || num_samples == 0) {
-        return HAL_ERROR;
-    }
-
-    double sum_ax = 0.0;
-    double sum_ay = 0.0;
-    double sum_az = 0.0;
-    double sum_gx = 0.0;
-    double sum_gy = 0.0;
-    double sum_gz = 0.0;
-
-    for (uint16_t i = 0; i < num_samples; i++) {
-        if (MPU6050_ReadAll(mpu) != HAL_OK) {
-            return HAL_ERROR;
-        }
-
-        /* Akumulasikan data fisik mentah sebelum offset kalibrasi */
-        sum_ax += (double)mpu->accel_x_raw / MPU6050_ACCEL_SENS_2G;
-        sum_ay += (double)mpu->accel_y_raw / MPU6050_ACCEL_SENS_2G;
-        sum_az += (double)mpu->accel_z_raw / MPU6050_ACCEL_SENS_2G;
-
-        sum_gx += (double)mpu->gyro_x_raw / MPU6050_GYRO_SENS_250;
-        sum_gy += (double)mpu->gyro_y_raw / MPU6050_GYRO_SENS_250;
-        sum_gz += (double)mpu->gyro_z_raw / MPU6050_GYRO_SENS_250;
-
-        HAL_Delay(2);
-    }
-
-    /* Hitung rata-rata statis (static averaging) */
-    mpu->accel_offset_x = (float)(sum_ax / (double)num_samples);
-    mpu->accel_offset_y = (float)(sum_ay / (double)num_samples);
-    /* Sumbu Z mengukur gravitasi bumi (+1.0g) pada posisi datar diam menghadap atas */
-    mpu->accel_offset_z = (float)((sum_az / (double)num_samples) - 1.0);
-
-    mpu->gyro_offset_x  = (float)(sum_gx / (double)num_samples);
-    mpu->gyro_offset_y  = (float)(sum_gy / (double)num_samples);
-    mpu->gyro_offset_z  = (float)(sum_gz / (double)num_samples);
 
     return HAL_OK;
 }
