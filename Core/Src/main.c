@@ -82,7 +82,7 @@ static void format_float(char *buf, size_t size, float val)
     if (frac_part >= 100)
     {
       int_part++;
-      frac_part -= 100;
+      frac_part -= 100; 
     }
     snprintf(buf, size, "-%ld.%02lu", (long)int_part, (long)frac_part);
   }
@@ -142,8 +142,8 @@ int main(void)
     HAL_Delay(100);
   }
 
-  /* Kalibrasi sensor (1000 sampel statis ~2 detik) */
-  while (MPU6050_Calibrate(&mpu, 1000) != HAL_OK)
+  /* Kalibrasi startup gyroscope (500 sampel statis ~1 detik) */
+  while (MPU6050_Calibrate_Gyro(&mpu) != HAL_OK)
   {
     /* Kalibrasi gagal: kedipkan LED */
     HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
@@ -157,32 +157,24 @@ int main(void)
   while (1)
   {
     /* Membaca seluruh data IMU (akselerometer, suhu, gyroscope) */
-    mpu_status = MPU6050_ReadAll(&mpu);
-    if (mpu_status == HAL_OK)
+    if (MPU6050_ReadAll(&mpu) == HAL_OK)
     {
-      /* Hitung estimasi orientasi sudut roll dan pitch dengan Kalman Filter */
       MPU6050_Update_Kalman(&mpu);
       MPU6050_Update_Angle(&mpu);
       uart.comple = mpu.roll;
       uart.kalman = mpu.roll_k;
 
-      char comple[16];
-      char kalman[16];
-      char tx_buf[64];
+      char roll_str[16];
+      char pitch_str[16];
+      char yaw_str[16];
+      char tx_buf[96];
 
-      format_float(comple, sizeof(comple), mpu.roll);
-      format_float(kalman, sizeof(kalman), mpu.roll_k);
-      int len = snprintf(tx_buf, sizeof(tx_buf), "Comple: %s, Kalman: %s\r\n", comple, kalman);
+      format_float(roll_str, sizeof(roll_str), mpu.roll);
+      format_float(pitch_str, sizeof(pitch_str), mpu.pitch);
+      format_float(yaw_str, sizeof(yaw_str), mpu.yaw);
+      int len = snprintf(tx_buf, sizeof(tx_buf), "Roll: %s, Pitch: %s, Yaw: %s\r\n", roll_str, pitch_str, yaw_str);
       HAL_UART_Transmit(&huart1, (uint8_t*)tx_buf, (uint16_t)len, HAL_MAX_DELAY);
     }
-
-    /* Heartbeat LED: berkedip setiap 500 ms menandakan loop utama berjalan lancar */
-    // static uint32_t last_led_toggle = 0;
-    // if (HAL_GetTick() - last_led_toggle >= 500)
-    // {
-    //   last_led_toggle = HAL_GetTick();
-    //   HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-    // }
 
     HAL_Delay(50); /* Delay sampling 50 ms (20 Hz) */
     /* USER CODE END WHILE */

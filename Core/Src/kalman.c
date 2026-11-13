@@ -113,9 +113,9 @@ void MPU6050_Update_Kalman(MPU6050_t *dev)
         Kalman_SetAngle(&KalmanX, acc_roll);
         dev->roll_k = acc_roll;
     } else {
-        dev->roll_k = Kalman_getAngle(&KalmanX, acc_roll, (double)dev->gyro_x, dt);
+        dev->roll_k = Kalman_getAngle(&KalmanX, acc_roll, (double)(dev->gyro_x - dev->gyro_offset_x), dt);
     }
 
     /* Update filter Kalman untuk sumbu Pitch */
-    dev->pitch_k = Kalman_getAngle(&KalmanY, acc_pitch, (double)dev->gyro_y, dt);
+    dev->pitch_k = Kalman_getAngle(&KalmanY, acc_pitch, (double)(dev->gyro_y - dev->gyro_offset_y), dt);
 }

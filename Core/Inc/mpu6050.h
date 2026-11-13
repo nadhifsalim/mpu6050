@@ -34,6 +34,22 @@ extern "C" {
 /* Nilai identitas sensor WHO_AM_I */
 #define MPU6050_WHO_AM_I_VAL        0x68
 
+/* Konfigurasi Clock Source & Power Management (Register PWR_MGMT_1 0x6B) */
+#define MPU6050_RESET               0x80    /* Device Reset bit */
+#define MPU6050_CLK_INTERNAL        0x00    /* Internal 8MHz oscillator */
+#define MPU6050_CLK_PLL_XGYRO       0x01    /* PLL dengan referensi gyro sumbu X (direkomendasikan) */
+#define MPU6050_CLK_PLL_YGYRO       0x02    /* PLL dengan referensi gyro sumbu Y */
+#define MPU6050_CLK_PLL_ZGYRO       0x03    /* PLL dengan referensi gyro sumbu Z */
+
+/* Konfigurasi Digital Low Pass Filter (Register CONFIG 0x1A, bits [2:0]) */
+#define MPU6050_DLPF_260HZ          0x00    /* Accel 260Hz, Gyro 256Hz, Fs 8kHz */
+#define MPU6050_DLPF_184HZ          0x01    /* Accel 184Hz, Gyro 188Hz, Fs 1kHz */
+#define MPU6050_DLPF_94HZ           0x02    /* Accel 94Hz,  Gyro 98Hz,  Fs 1kHz */
+#define MPU6050_DLPF_42HZ           0x03    /* Accel 44Hz,  Gyro 42Hz,  Fs 1kHz */
+#define MPU6050_DLPF_20HZ           0x04    /* Accel 21Hz,  Gyro 20Hz,  Fs 1kHz */
+#define MPU6050_DLPF_10HZ           0x05    /* Accel 10Hz,  Gyro 10Hz,  Fs 1kHz */
+#define MPU6050_DLPF_5HZ            0x06    /* Accel 5Hz,   Gyro 5Hz,   Fs 1kHz */
+
 /* Konfigurasi Accelerometer Full-Scale Range (Register ACCEL_CONFIG 0x1C, bits [4:3]) */
 #define MPU6050_ACCEL_FS_2G         0x00    /* ±2g   (AFS_SEL = 0) */
 #define MPU6050_ACCEL_FS_4G         0x08    /* ±4g   (AFS_SEL = 1) */
@@ -77,7 +93,7 @@ typedef struct {
     int16_t gyro_y_raw;
     int16_t gyro_z_raw;
 
-    /* Data hasil konversi satuan fisik (setelah dikurangi offset) */
+    /* Data hasil konversi satuan fisik (scaled) */
     float accel_x;              /* Akselerasi sumbu X (g) */
     float accel_y;              /* Akselerasi sumbu Y (g) */
     float accel_z;              /* Akselerasi sumbu Z (g) */
@@ -92,7 +108,7 @@ typedef struct {
     float accel_offset_z;       /* Offset akselerasi sumbu Z (g) */
     float gyro_offset_x;        /* Offset kecepatan sudut sumbu X (°/s) */
     float gyro_offset_y;        /* Offset kecepatan sudut sumbu Y (°/s) */
-    float gyro_offset_z;       /* Offset kecepatan sudut sumbu Z (°/s) */
+    float gyro_offset_z;        /* Offset kecepatan sudut sumbu Z (°/s) */
 
     uint8_t angle_init;
     uint8_t kalman_init;
@@ -102,7 +118,15 @@ typedef struct {
 
     float roll;                 /* Estimasi sudut Roll hasil Complementary Filter (°) */
     float pitch;                /* Estimasi sudut Pitch hasil Complementary Filter (°) */
+    float yaw;                  /* Estimasi sudut Yaw hasil Complementary Filter (°) */
 } MPU6050_t;
+
+/**
+  * @brief  Kalibrasi zero-offset gyroscope menggunakan static averaging (500 sampel).
+  * @param  mpu: Pointer ke struct MPU6050_t
+  * @retval HAL status (HAL_OK jika sukses)
+  */
+HAL_StatusTypeDef MPU6050_Calibrate_Gyro(MPU6050_t *mpu);
 
 /**
   * @brief  Inisialisasi sensor MPU6050: cek WHO_AM_I, bangunkan sensor, dan atur range.
